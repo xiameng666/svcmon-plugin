@@ -159,24 +159,10 @@ def _get_uid(package, serial=None):
     return None
 
 
-# ─── Syscall categories (from SVCMonitors project) ───
+# ─── Syscall categories ───
+from core.categories import SYSCALL_CATEGORIES, SC_TO_CAT
 
-CATEGORIES = {
-    '文件操作': ['openat', 'close', 'faccessat', 'unlinkat', 'readlinkat',
-                'getdents64', 'read', 'write', 'newfstatat', 'statx', 'renameat2', 'mkdirat'],
-    '进程管理': ['clone', 'clone3', 'execve', 'execveat', 'exit', 'exit_group',
-                'wait4', 'prctl', 'ptrace'],
-    '内存管理': ['mmap', 'mprotect', 'munmap', 'brk', 'mincore', 'madvise',
-                'memfd_create', 'process_vm_readv', 'process_vm_writev'],
-    '网络通信': ['socket', 'bind', 'listen', 'connect', 'accept', 'accept4',
-                'sendto', 'recvfrom'],
-    '信号处理': ['kill', 'tgkill', 'rt_sigaction'],
-    '安全相关': ['seccomp', 'setns', 'unshare', 'bpf'],
-    'Tier2': ['ioctl', 'lseek', 'readv', 'writev', 'fcntl', 'sendfile',
-              'sendmsg', 'recvmsg', 'setsockopt', 'getsockopt', 'mount',
-              'umount2', 'prlimit64', 'capget', 'capset', 'setuid', 'setgid',
-              'finit_module', 'init_module', 'delete_module'],
-}
+CATEGORIES = {k: v['syscalls'] for k, v in SYSCALL_CATEGORIES.items()}
 
 BASE_SC = 'openat,close,mmap,mprotect,munmap'
 
@@ -428,9 +414,9 @@ def run(package, preset, duration, output, serial, open_browser, json_mode):
 
     # 7. Parse + HTML
     click.echo("[7/7] Generating report...")
-    from .core.trace_parser import parse_trace, merge_entry_return, categorize_event
-    from .core.maps_reconstructor import MapsReconstructor
-    from .core.html_report import generate_html_report
+    from core.trace_parser import parse_trace, merge_entry_return, categorize_event
+    from core.maps_reconstructor import MapsReconstructor
+    from core.html_report import generate_html_report
 
     with open(trace_local, "r", encoding="utf-8", errors="replace") as f:
         raw = f.read()
@@ -462,14 +448,23 @@ def run(package, preset, duration, output, serial, open_browser, json_mode):
     # 8. Generate resolved trace (APK offsets → SO offsets)
     resolved_path = str(out_dir / "trace_resolved.log")
     _generate_resolved_trace(trace_local, resolved_path, recon)
-    click.echo(f"  resolved: {resolved_path}")
+
+    # Delete raw trace, keep only resolved (avoid AI reading unresolved APK offsets)
+    try:
+        os.remove(trace_local)
+        # Rename resolved to trace.log (single source of truth)
+        os.rename(resolved_path, trace_local)
+        resolved_path = trace_local
+        click.echo(f"  trace: {trace_local} (resolved)")
+    except OSError:
+        click.echo(f"  trace: {resolved_path}")
 
     # Output
     result = {
         "events": len(merged), "detections": det_n, "lost": lost,
         "regions": len(recon.get_region_summary()),
-        "trace": trace_local, "trace_resolved": resolved_path,
-        "report": html_path, "output_dir": str(out_dir),
+        "trace": trace_local, "report": html_path,
+        "output_dir": str(out_dir),
         "package": package, "uid": uid,
     }
 
@@ -497,9 +492,9 @@ def run(package, preset, duration, output, serial, open_browser, json_mode):
 @click.option("--open/--no-open", "open_browser", default=True)
 def parse(trace_file, package, maps_file, apk_file, output, open_browser):
     """Parse existing stackplz trace to HTML report."""
-    from .core.trace_parser import parse_trace, merge_entry_return, categorize_event
-    from .core.maps_reconstructor import MapsReconstructor
-    from .core.html_report import generate_html_report
+    from core.trace_parser import parse_trace, merge_entry_return, categorize_event
+    from core.maps_reconstructor import MapsReconstructor
+    from core.html_report import generate_html_report
 
     if output:
         html_path = output

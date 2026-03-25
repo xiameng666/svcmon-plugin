@@ -10,18 +10,17 @@ import re
 from collections import Counter, defaultdict
 from typing import Any, Dict, List, Optional
 
-from .trace_parser import categorize_event
-from .maps_reconstructor import (
-    MapsReconstructor, symbolize_backtrace, format_backtrace_line,
-)
+try:
+    from .trace_parser import categorize_event
+    from .maps_reconstructor import MapsReconstructor, symbolize_backtrace, format_backtrace_line
+    from .categories import SYSCALL_CATEGORIES, SC_TO_CAT
+except ImportError:
+    from trace_parser import categorize_event
+    from maps_reconstructor import MapsReconstructor, symbolize_backtrace, format_backtrace_line
+    from categories import SYSCALL_CATEGORIES, SC_TO_CAT
 
-# Import categories from CLI (avoid circular by lazy import)
 def _get_categories():
-    try:
-        from ..svcMonitor_cli import SYSCALL_CATEGORIES, _SC_TO_CAT
-        return SYSCALL_CATEGORIES, _SC_TO_CAT
-    except ImportError:
-        return {}, {}
+    return SYSCALL_CATEGORIES, SC_TO_CAT
 
 
 def _esc(s: str) -> str:
