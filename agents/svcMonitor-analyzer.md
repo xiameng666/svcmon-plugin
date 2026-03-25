@@ -13,45 +13,67 @@ model: inherit
 - **不能 ls 探索目录**
 - **不能猜路径**
 
-## 环境
+## 输入
 
-- `/re:init` 已完成 pip install + stackplz 下载
-- session-start hook 已注入 session 目录
-- 主 agent prompt 里有：包名、preset、session_dir
+主 agent prompt 里有：包名（或关键词）、preset。
 
-## Step 1: 兜底检查
+## Step 1: 读配置 + 检查环境
 
+**一条命令完成所有检查，不要分开跑：**
+```bash
+python3 -c "
+import json,subprocess,sys
+from pathlib import Path
+
+cfg_path = Path.home() / '.reverse-plugin' / 'config.json'
+if not cfg_path.is_file():
+    print('ERROR: 未初始化，请先运行 /re:init')
+    sys.exit(1)
+
+cfg = json.loads(cfg_path.read_text())
+work_dir = cfg.get('work_dir', '')
+if not work_dir:
+    print('ERROR: 工作目录未设置，请先运行 /re:init')
+    sys.exit(1)
+
+stackplz_local = str(Path(work_dir) / '.config' / 'stackplz')
+sessions_dir = str(Path(work_dir) / 'sessions')
+
+print(f'WORK_DIR={work_dir}')
+print(f'STACKPLZ_LOCAL={stackplz_local}')
+print(f'SESSIONS_DIR={sessions_dir}')
+print(f'STACKPLZ_EXISTS={Path(stackplz_local).is_file()}')
+"
+```
+
+如果输出 ERROR → 告诉用户跑 `/re:init`，停止。
+
+然后检查 svcMonitor CLI 和设备：
 ```bash
 which svcMonitor && adb devices | head -3
 ```
 
-如果 svcMonitor 不存在 → 告诉用户先跑 `/re:init`，然后停止。
+svcMonitor 不存在 → 告诉用户跑 `/re:init`，停止。
 
-读取工作目录（从全局配置）：
-```bash
-WORK_DIR=$(python3 -c "import json;from pathlib import Path;print(json.load(open(Path.home()/'.reverse-plugin'/'config.json')).get('work_dir',''))" 2>/dev/null)
-```
-
-WORK_DIR 为空 → 告诉用户先跑 `/re:init`，然后停止。
-
-stackplz 不在设备上 → 从工作目录 push：
+stackplz 不在设备上 → push（用上面拿到的 STACKPLZ_LOCAL 绝对路径）：
 ```bash
 MSYS_NO_PATHCONV=1 adb shell "su -c 'ls /data/local/tmp/re/stackplz'" 2>&1 || {
   MSYS_NO_PATHCONV=1 adb shell "su -c 'mkdir -p /data/local/tmp/re'"
-  MSYS_NO_PATHCONV=1 adb push "$WORK_DIR/.config/stackplz" /data/local/tmp/re/stackplz
+  MSYS_NO_PATHCONV=1 adb push "<STACKPLZ_LOCAL的绝对路径>" /data/local/tmp/re/stackplz
   MSYS_NO_PATHCONV=1 adb shell "su -c 'chmod 755 /data/local/tmp/re/stackplz'"
 }
 ```
 
-**注意**：`$WORK_DIR` 是绝对路径（如 `C:/Users/24151/re`），adb push 可以直接用。
-
 ## Step 2: 采集
 
+用上面拿到的 SESSIONS_DIR：
 ```bash
-svcMonitor run <包名> --preset <preset> --duration 15s --no-open --json -o <session_dir>
+svcMonitor run <包名> --preset <preset> --duration 15s --no-open --json -o "<SESSIONS_DIR>"
 ```
 
-从 JSON 提取：trace, trace_resolved, report, events, lost, detections。
+`svcMonitor run` 会在 SESSIONS_DIR 下自动创建带包名+时间戳的子目录。
+
+从 JSON 输出提取：trace, trace_resolved, report, output_dir, events, lost, detections。
 
 events=0 → 换 `--preset re_basic` 重试。
 
