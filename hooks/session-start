@@ -59,20 +59,15 @@ if device_status == "connected" and init_done:
     except Exception:
         pass
 
-# ─── Create session dir ───
-session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-session_dir = sessions_dir / session_id
-if init_done:
-    session_dir.mkdir(parents=True, exist_ok=True)
-
 # ─── Build context ───
+# Note: session 目录由 svcMonitor run 自动创建，hook 不创建
 if not init_done:
     ctx = "reverse-plugin: 未初始化。请先运行 /re:init"
 else:
     lines = [
-        "reverse-plugin session:",
+        "reverse-plugin:",
         f"- 工作目录: {work_dir}",
-        f"- session: {session_dir}",
+        f"- 输出目录: {sessions_dir}",
         f"- 设备: {device_status}" + (f" ({device_model})" if device_model else ""),
     ]
     if not stackplz_device and device_status == "connected":
