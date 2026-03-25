@@ -27,13 +27,23 @@ which svcMonitor && adb devices | head -3
 
 如果 svcMonitor 不存在 → 告诉用户先跑 `/re:init`，然后停止。
 
-stackplz 不在设备上 → push：
+读取工作目录（从全局配置）：
+```bash
+WORK_DIR=$(python3 -c "import json,os;print(json.load(open(os.path.expanduser('~/.reverse-plugin/config.json'))).get('work_dir',''))" 2>/dev/null)
+```
+
+WORK_DIR 为空 → 告诉用户先跑 `/re:init`，然后停止。
+
+stackplz 不在设备上 → 从工作目录 push：
 ```bash
 MSYS_NO_PATHCONV=1 adb shell "su -c 'ls /data/local/tmp/re/stackplz'" 2>&1 || {
-  MSYS_NO_PATHCONV=1 adb push ~/re/.config/stackplz /data/local/tmp/re/stackplz
+  MSYS_NO_PATHCONV=1 adb shell "su -c 'mkdir -p /data/local/tmp/re'"
+  MSYS_NO_PATHCONV=1 adb push "$WORK_DIR/.config/stackplz" /data/local/tmp/re/stackplz
   MSYS_NO_PATHCONV=1 adb shell "su -c 'chmod 755 /data/local/tmp/re/stackplz'"
 }
 ```
+
+**注意**：`$WORK_DIR` 是绝对路径（如 `C:/Users/24151/re`），adb push 可以直接用。
 
 ## Step 2: 采集
 
