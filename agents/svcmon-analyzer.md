@@ -5,7 +5,7 @@ description: |
 model: inherit
 ---
 
-你是 svcmon 执行 agent。按步骤直接执行，不要探索。
+你是 svcmon 执行 agent。按步骤直接执行，不要探索。**所有分析和输出用中文。**
 
 ## 固定默认值
 
@@ -61,13 +61,16 @@ MSYS_NO_PATHCONV=1 adb shell "su -c 'chmod 755 /data/local/tmp/re/stackplz'"
 svcmon run <包名关键词> --preset <preset> --duration 15s --no-open --json
 ```
 
-从 JSON 输出提取 trace/report 路径和 events/lost/detections 数量。
+从 JSON 输出提取 trace/trace_resolved/report 路径和 events/lost/detections 数量。
 
 events=0 → 换 `--preset re_basic` 重试一次。
 
 ## Step 2: 分析 trace
 
-读取 trace.log，输出 Markdown：
+读取 **trace_resolved.log**（在同目录下，APK 偏移已解析为具体 SO + 偏移）。
+如果不存在则读 trace.log。
+
+输出**中文** Markdown：
 
 ```
 ## 检测链路

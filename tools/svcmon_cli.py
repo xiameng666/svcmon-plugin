@@ -456,11 +456,17 @@ def run(package, preset, duration, output, serial, open_browser, json_mode):
         timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     Path(html_path).write_text(html, encoding="utf-8")
 
+    # 8. Generate resolved trace (APK offsets → SO offsets)
+    resolved_path = str(out_dir / "trace_resolved.log")
+    _generate_resolved_trace(trace_local, resolved_path, recon)
+    click.echo(f"  resolved: {resolved_path}")
+
     # Output
     result = {
         "events": len(merged), "detections": det_n, "lost": lost,
         "regions": len(recon.get_region_summary()),
-        "trace": trace_local, "report": html_path, "output_dir": str(out_dir),
+        "trace": trace_local, "trace_resolved": resolved_path,
+        "report": html_path, "output_dir": str(out_dir),
         "package": package, "uid": uid,
     }
 
@@ -566,6 +572,55 @@ def config_set(key, value):
         click.echo(f"Set {key} = {value} → {actual}")
     else:
         click.echo(f"Set {key} = {value}")
+
+
+def _generate_resolved_trace(trace_path, resolved_path, recon):
+    """Post-process trace.log: replace APK+offset with SO+offset in backtraces.
+
+    Lines like:
+      #00 pc 000000000012345  split_config.arm64_v8a.apk
+    become:
+      #00 pc 000000000012345  split_config.arm64_v8a.apk  →  libsecurity.so + 0xb858
+    """
+    import re as re_mod
+
+    # Build APK SO mapping from registered APKs
+    apk_resolver = recon._apk_resolver
+
+    bt_pattern = re_mod.compile(
+        r'^(\s*#\d+\s+pc\s+)([0-9a-fA-F]+)\s+(\S+\.apk)(.*)$'
+    )
+
+    with open(trace_path, 'r', encoding='utf-8', errors='replace') as fin, \
+         open(resolved_path, 'w', encoding='utf-8') as fout:
+        for line in fin:
+            m = bt_pattern.match(line.rstrip())
+            if m:
+                prefix = m.group(1)
+                offset_hex = m.group(2)
+                apk_name = m.group(3)
+                rest = m.group(4)
+                offset = int(offset_hex, 16)
+
+                # Try to resolve APK offset to SO
+                resolved = None
+                for dev_path, local_path in recon._local_apks.items():
+                    if apk_name in dev_path or dev_path.endswith(apk_name.rsplit('/', 1)[-1]):
+                        resolved = apk_resolver.resolve(local_path, offset)
+                        break
+                    apk_basename = apk_name.rsplit('/', 1)[-1]
+                    dev_basename = dev_path.rsplit('/', 1)[-1]
+                    if apk_basename == dev_basename:
+                        resolved = apk_resolver.resolve(local_path, offset)
+                        break
+
+                if resolved:
+                    so_name, so_offset = resolved
+                    fout.write(f'{prefix}{offset_hex}  {apk_name}  →  {so_name} + 0x{so_offset:x}{rest}\n')
+                else:
+                    fout.write(line)
+            else:
+                fout.write(line)
 
 
 def _parse_dur(s):
