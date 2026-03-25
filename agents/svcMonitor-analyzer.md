@@ -71,7 +71,7 @@ MSYS_NO_PATHCONV=1 adb shell "su -c 'ls /data/local/tmp/re/stackplz'" 2>&1 || {
 svcMonitor run <包名> --preset <preset> --duration 15s --no-open --json -o "<SESSIONS_DIR>"
 ```
 
-`svcMonitor run` 会在 SESSIONS_DIR 下自动创建带包名+时间戳的子目录。
+`svcMonitor run` 会创建 `SESSIONS_DIR/<包名>/<时间戳>/` 目录结构。同一个包的多次分析归在同一个包名目录下。
 
 从 JSON 输出提取：trace, trace_resolved, report, output_dir, events, lost, detections。
 
