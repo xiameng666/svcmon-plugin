@@ -17,15 +17,29 @@ reverse-plugin 初始化：
 工作目录？（回车默认 ~/re）
 ```
 
-3. 创建目录结构：
+3. 保存到全局配置（hook 会读这个文件）：
+```bash
+mkdir -p ~/.reverse-plugin
+python3 -c "
+import json,os
+cfg_path = os.path.expanduser('~/.reverse-plugin/config.json')
+work_dir = '<用户给的路径或 ~/re>'
+cfg = {'work_dir': work_dir}
+with open(cfg_path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+print(f'配置已保存: {cfg_path}')
+"
+```
+
+4. 创建目录结构：
 ```bash
 mkdir -p <工作目录>/sessions
 mkdir -p <工作目录>/.config
 ```
 
-4. 下载 stackplz：
+5. 下载 stackplz：
 ```bash
-python -c "
+python3 -c "
 import urllib.request,json,os
 api='https://api.github.com/repos/SeeFlowerX/stackplz/releases/latest'
 data=json.loads(urllib.request.urlopen(urllib.request.Request(api,headers={'User-Agent':'s'}),timeout=30).read())
@@ -38,12 +52,12 @@ print(f'stackplz {tag} 下载完成: {dest} ({os.path.getsize(dest)//1024}KB)')
 "
 ```
 
-5. 保存配置：
+6. 保存 svcMonitor CLI 配置：
 ```bash
 svcMonitor config set output_root <工作目录>/sessions
 ```
 
-6. 如果设备已连接，推送 stackplz：
+7. 如果设备已连接，推送 stackplz：
 ```bash
 adb devices
 MSYS_NO_PATHCONV=1 adb shell "su -c 'mkdir -p /data/local/tmp/re'"
@@ -55,7 +69,8 @@ MSYS_NO_PATHCONV=1 adb shell "su -c 'chmod 755 /data/local/tmp/re/stackplz'"
 ```
 reverse-plugin 初始化完成！
   工作目录: <路径>
-  stackplz: 已下载 + 已推送
+  stackplz: 已下载
   svcMonitor CLI: 已安装
+  下次开新 session 会自动检测环境
   使用 /re:svcmon <包名> 开始监控
 ```
