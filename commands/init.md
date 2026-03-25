@@ -1,0 +1,61 @@
+---
+description: "初始化 reverse-plugin 环境。安装后首次运行一次即可。"
+argument-hint: ""
+---
+
+执行 reverse-plugin 初始化，依次完成：
+
+1. 安装 svcMonitor CLI（pip install）：
+```bash
+TOOLS_DIR="$(ls -d ~/.claude/plugins/cache/reverse-plugin/re/*/tools/ 2>/dev/null | head -1)"
+pip install -e "$TOOLS_DIR" 2>&1 | tail -5
+```
+
+2. 用 AskUserQuestion 问用户工作目录：
+```
+reverse-plugin 初始化：
+工作目录？（回车默认 ~/re）
+```
+
+3. 创建目录结构：
+```bash
+mkdir -p <工作目录>/sessions
+mkdir -p <工作目录>/.config
+```
+
+4. 下载 stackplz：
+```bash
+python -c "
+import urllib.request,json,os
+api='https://api.github.com/repos/SeeFlowerX/stackplz/releases/latest'
+data=json.loads(urllib.request.urlopen(urllib.request.Request(api,headers={'User-Agent':'s'}),timeout=30).read())
+tag=data.get('tag_name','?')
+url=[a['browser_download_url'] for a in data['assets'] if a['name']=='stackplz'][0]
+dest=os.path.expanduser('<工作目录>/.config/stackplz')
+os.makedirs(os.path.dirname(dest),exist_ok=True)
+urllib.request.urlretrieve(url,dest)
+print(f'stackplz {tag} 下载完成: {dest} ({os.path.getsize(dest)//1024}KB)')
+"
+```
+
+5. 保存配置：
+```bash
+svcMonitor config set output_root <工作目录>/sessions
+```
+
+6. 如果设备已连接，推送 stackplz：
+```bash
+adb devices
+MSYS_NO_PATHCONV=1 adb shell "su -c 'mkdir -p /data/local/tmp/re'"
+MSYS_NO_PATHCONV=1 adb push <工作目录>/.config/stackplz /data/local/tmp/re/stackplz
+MSYS_NO_PATHCONV=1 adb shell "su -c 'chmod 755 /data/local/tmp/re/stackplz'"
+```
+
+完成后输出：
+```
+reverse-plugin 初始化完成！
+  工作目录: <路径>
+  stackplz: 已下载 + 已推送
+  svcMonitor CLI: 已安装
+  使用 /re:svcmon <包名> 开始监控
+```
