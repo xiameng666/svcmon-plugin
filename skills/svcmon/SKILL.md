@@ -5,36 +5,26 @@ description: 对 Android APP 进行 syscall 行为监控与检测分析。当用
 
 # svcMonitor
 
-## 触发
+**你只做一件事：spawn subagent。不要自己执行任何 bash 命令、不要自己分析、不要自己 adb。**
 
-用户说 `/re:svcmon <包名>` 或 "监控APP"、"分析检测" 时使用。
+## 执行
 
-## 环境
-
-session-start hook 已注入当前环境状态（设备、stackplz、session 目录）。
-从 hook 注入的上下文里拿 session 目录路径。
-
-## 你做两件事
-
-### 1. Spawn subagent
-
-把包名、preset、session 目录传给 `re:svcMonitor-analyzer`：
+立刻 spawn `re:svcMonitor-analyzer` subagent，prompt 里传：
 
 ```
-包名: <用户给的>
-preset: <选的>
-session_dir: <从 hook 上下文拿到的 session 目录>
+包名: <用户给的包名或关键词>
+preset: <re_basic 或根据用户意图选>
 ```
 
-Preset：
-- "分析检测/反调试/反注入" → `re_basic`
+Preset 选择：
+- 默认 / "分析检测/反调试/反注入" → `re_basic`
 - "分析反虚拟机" → `re_full`
-- 没说 → `re_basic`
 
-如果 hook 上下文里显示设备未连接或 stackplz 缺失，先提醒用户。
+spawn 后等它返回，把结果原样输出给用户。
 
-### 2. 输出结果
+## 禁止
 
-subagent 返回后告诉用户。
-
-**不要自己跑采集/分析/注入。全部交给 subagent。所有交互用中文。**
+- 禁止自己跑 adb/bash/stackplz/svcMonitor 命令
+- 禁止自己分析 trace
+- 禁止自己改 HTML
+- 你唯一要做的就是 spawn subagent + 输出结果
