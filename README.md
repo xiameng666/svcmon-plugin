@@ -193,7 +193,7 @@ sessions/<package>/static_<so_name>/
 │ /re:extractSo libnative.so com.example.app  │
 │      ↓                                      │
 │ so-extractor (subagent)                     │
-│   ├── extract_so.py → idat headless         │
+│   ├── extractso_export.py → idat headless    │
 │   └── → static_<so>/ (disasm/ decompiled/)  │
 └─────────────────────────────────────────────┘
           ↓ 导出数据

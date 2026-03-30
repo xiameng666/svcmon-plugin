@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """注入 AI 分析到 HTML 报告。
 
-用法: python3 inject_html.py <report.html> <analysis.md>
+用法: python3 svcmon_inject.py <report.html> <analysis.md>
 """
 import re, sys
 from pathlib import Path
@@ -86,7 +86,7 @@ def md_to_html(md: str) -> str:
 
 def main():
     if len(sys.argv) < 3:
-        print("用法: python3 inject_html.py <report.html> <analysis.md>")
+        print("用法: python3 svcmon_inject.py <report.html> <analysis.md>")
         sys.exit(1)
 
     report_path = Path(sys.argv[1])

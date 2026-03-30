@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """一键采集：push stackplz + svcMonitor run。输出 KEY=VALUE。
 
-用法: python3 run_capture.py <包名或关键词> [--preset re_basic] [--duration 15s]
+用法: python3 svcmon_capture.py <包名或关键词> [--preset re_basic] [--duration 15s]
 """
 import argparse, json, os, subprocess, sys
 from pathlib import Path

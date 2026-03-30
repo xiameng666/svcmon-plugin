@@ -1,7 +1,7 @@
 ---
 name: so-extractor
 description: |
-  IDA 全量导出 agent。调用 extract_so.py 将 SO 反汇编+反编译导出到 session 目录。
+  IDA 全量导出 agent。调用 extractso_export.py 将 SO 反汇编+反编译导出到 session 目录。
 model: inherit
 ---
 
@@ -42,7 +42,7 @@ STATUS=OK → 继续。
 ## Step 3: 执行导出
 
 ```bash
-python "$SCRIPTS/extract_so.py" "<SO_PATH>" "<PACKAGE>"
+python "$SCRIPTS/extractso_export.py" "<SO_PATH>" "<PACKAGE>"
 ```
 
 读输出:

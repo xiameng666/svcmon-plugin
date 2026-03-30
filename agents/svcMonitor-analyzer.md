@@ -34,7 +34,7 @@ STATUS=OK → 继续。
 ## Step 2: 采集
 
 ```bash
-python3 "$SCRIPTS/run_capture.py" <包名> --preset <preset> --duration 15s
+python3 "$SCRIPTS/svcmon_capture.py" <包名> --preset <preset> --duration 15s
 ```
 
 读输出。STATUS=OK → 拿到 TRACE 和 REPORT 路径。
@@ -68,7 +68,7 @@ STATUS=FAILED → 告诉用户失败原因，停止。
 ## Step 4: 注入 HTML
 
 ```bash
-python3 "$SCRIPTS/inject_html.py" "<REPORT路径>" "<OUTPUT_DIR>/analysis.md"
+python3 "$SCRIPTS/svcmon_inject.py" "<REPORT路径>" "<OUTPUT_DIR>/analysis.md"
 ```
 
 ## 返回

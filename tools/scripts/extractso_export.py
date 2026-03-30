@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""extract_so.py — 调用 idat 全量导出 SO 到 sessions 目录。
+"""extractso_export.py — 调用 idat 全量导出 SO 到 sessions 目录。
 
-用法: python extract_so.py <so_path> <package_name> [--output <dir>]
+用法: python extractso_export.py <so_path> <package_name> [--output <dir>]
 
 需要: ~/.reverse-plugin/config.json 中有 ida_path 和 work_dir
 IDA 脚本(ida_full_export.py, ida_run.py)已内置在同目录下。
