@@ -39,16 +39,56 @@ def adb_run(cmd, timeout=30):
         return -1, "", str(e)
 
 
+def resolve_package(keyword):
+    """模糊匹配包名。返回完整包名或 None。"""
+    # 先尝试精确匹配
+    rc, out, _ = adb_run(["adb", "shell", f"pm list packages {keyword}"], timeout=10)
+    if rc == 0:
+        exact = [l.strip()[8:] for l in out.splitlines() if l.strip() == f"package:{keyword}"]
+        if exact:
+            return keyword
+
+    # 模糊匹配
+    rc, out, _ = adb_run(["adb", "shell", "pm list packages"], timeout=15)
+    if rc != 0:
+        return None
+    matches = []
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("package:"):
+            pkg = line[8:]
+            if keyword.lower() in pkg.lower():
+                matches.append(pkg)
+    if len(matches) == 0:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+    # 多个匹配，输出列表让 agent 选择
+    print(f"MATCH_COUNT={len(matches)}")
+    for i, m in enumerate(matches):
+        print(f"MATCH={i}:{m}")
+    return matches[0]  # 默认选第一个
+
+
 def cmd_pull(args):
     """从设备 pull APK 并解压 arm64 SO 到 sessions/<pkg>/so/"""
     cfg = load_config()
     work_dir = Path(cfg["work_dir"])
-    so_dir = work_dir / "sessions" / args.package / "so"
+
+    # Resolve package name (fuzzy match)
+    package = resolve_package(args.package)
+    if not package:
+        print(f"ERROR=找不到匹配的包: {args.package}")
+        sys.exit(1)
+    if package != args.package:
+        print(f"RESOLVED={package}")
+    print(f"PACKAGE={package}")
+
+    so_dir = work_dir / "sessions" / package / "so"
 
     # Check if already pulled
     if so_dir.exists():
         so_files = list(so_dir.glob("*.so"))
-        apk_files = list(so_dir.glob("*.apk"))
         if so_files:
             print(f"SO_DIR={so_dir}")
             print(f"SO_COUNT={len(so_files)}")
@@ -60,10 +100,10 @@ def cmd_pull(args):
     so_dir.mkdir(parents=True, exist_ok=True)
 
     # Find APK paths on device
-    print(f"PHASE=finding APK for {args.package}...")
-    rc, out, err = adb_run(["adb", "shell", f"su -c 'pm path {args.package}'"])
+    print(f"PHASE=finding APK for {package}...")
+    rc, out, err = adb_run(["adb", "shell", f"su -c 'pm path {package}'"])
     if rc != 0:
-        print(f"ERROR=找不到包: {args.package}")
+        print(f"ERROR=pm path 失败: {err}")
         sys.exit(1)
 
     apk_paths = [l.strip()[8:] for l in out.splitlines() if l.strip().startswith("package:")]
@@ -143,11 +183,35 @@ def cmd_pull(args):
     print("STATUS=OK")
 
 
+def find_package_dir(sessions_dir, keyword):
+    """在 sessions 目录中模糊查找包名目录。"""
+    exact = sessions_dir / keyword / "so"
+    if exact.exists():
+        return keyword, exact
+    # Fuzzy match on directory names
+    for d in sessions_dir.iterdir():
+        if d.is_dir() and keyword.lower() in d.name.lower():
+            so = d / "so"
+            if so.exists():
+                return d.name, so
+    return None, None
+
+
 def cmd_ida(args):
     """对指定 SO 做 IDA 全量导出"""
     cfg = load_config()
     work_dir = Path(cfg["work_dir"])
-    so_dir = work_dir / "sessions" / args.package / "so"
+    sessions_dir = work_dir / "sessions"
+
+    # Find package directory (fuzzy match on local dirs)
+    package, so_dir = find_package_dir(sessions_dir, args.package)
+    if not package:
+        print(f"ERROR=找不到包目录: {args.package}")
+        print(f"HINT=请先运行: /re:extractSo {args.package}")
+        sys.exit(1)
+    if package != args.package:
+        print(f"RESOLVED={package}")
+    print(f"PACKAGE={package}")
 
     # Check IDA
     ida_path = cfg.get("ida_path", "")
@@ -197,7 +261,7 @@ def cmd_ida(args):
 
     for so_path in targets:
         so_stem = so_path.stem
-        export_dir = work_dir / "sessions" / args.package / f"static_{so_stem}"
+        export_dir = work_dir / "sessions" / package / f"static_{so_stem}"
         export_dir.mkdir(parents=True, exist_ok=True)
 
         # Check if already exported
