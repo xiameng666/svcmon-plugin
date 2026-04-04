@@ -23,10 +23,10 @@ SCRIPTS=$(python -c "from pathlib import Path; import glob; dirs=glob.glob(str(P
 ## Step 1: 生成 HTML 报告
 
 ```bash
-svcMonitor report "<trace文件路径>" -o "<输出目录>/report.html"
+svcMonitor parse "<trace文件路径>" -p <包名> -o "<输出目录>/report.html" --no-open
 ```
 
-如果命令不存在或失败，跳过，只做分析。
+如果失败，跳过，只做分析。
 
 ## Step 2: 分析
 
